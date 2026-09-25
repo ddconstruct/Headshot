@@ -1,0 +1,18 @@
+# dependencies
+node_modules/
+
+# next.js
+.next/
+out/
+
+# env (NEVER commit real secrets)
+.env
+.env*.local
+
+# local upload + order storage (ephemeral dev data)
+uploads/
+data/orders.json
+
+# misc
+.DS_Store
+*.log
