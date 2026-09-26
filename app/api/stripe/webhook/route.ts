@@ -15,6 +15,7 @@ import { NextResponse } from "next/server";
 import Stripe from "stripe";
 import { getOrder, markPaid } from "@/lib/orders";
 import { enqueueJob } from "@/lib/queue";
+import { triggerWorkerDispatch } from "@/lib/github";
 
 export const runtime = "nodejs";
 
@@ -67,6 +68,13 @@ export async function POST(req: Request) {
       await markPaid(orderId, session.id);
       const job = await enqueueJob(orderId);
       console.log(`Order ${orderId} marked paid (session ${session.id}); enqueued job ${job.id}.`);
+      // Start generation now via GitHub Actions (no always-on worker host).
+      // Awaited but failure-safe: the 12h scheduled sweep is the backup.
+      try {
+        await triggerWorkerDispatch(orderId);
+      } catch (err) {
+        console.error("Worker dispatch failed (backup sweep will catch it):", (err as Error).message);
+      }
     } else {
       console.log(`Order ${orderId} already ${order.status}; ignoring duplicate webhook.`);
     }
