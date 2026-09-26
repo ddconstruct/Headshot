@@ -9,9 +9,10 @@
  *
  * The Stripe webhook ONLY enqueues jobs — generation never runs there.
  *
- * Production: run this as an always-on process (see README "Running the
- * worker in production"). One worker at a time is fine to start; the claim
- * query is atomic so a second worker would never double-process a job.
+ * Production: GitHub Actions runs `npm run worker -- --once` on every paid
+ * order (dispatched from the Stripe webhook) plus a scheduled sweep every
+ * 12h as backup. No always-on host needed. The claim query is atomic so
+ * overlapping runs never double-process a job.
  */
 
 import dotenv from "dotenv";
@@ -41,6 +42,7 @@ import { generateHeadshots, planRuns } from "../lib/replicate";
 const POLL_SECONDS = Number(process.env.WORKER_POLL_SECONDS ?? 30);
 const RESULT_RETENTION_DAYS = 30; // must match the privacy policy
 const CLEANUP_INTERVAL_MS = 60 * 60 * 1000; // run retention cleanup hourly
+const ONCE = process.argv.includes("--once"); // single pass, then exit (GitHub Actions)
 
 let shuttingDown = false;
 process.on("SIGINT", () => { shuttingDown = true; console.log("\n[worker] Shutting down…"); });
@@ -127,6 +129,22 @@ async function main(): Promise<void> {
   await ensureSchema();
   const stale = await requeueStaleJobs();
   if (stale > 0) console.log(`[worker] Requeued ${stale} stale job(s).`);
+
+  if (ONCE) {
+    // Single pass for GitHub Actions: process every claimable job, run
+    // retention cleanup once, then exit. Overlapping runs are safe —
+    // claimNextJob() is atomic.
+    await runRetentionCleanup();
+    for (;;) {
+      const job = await claimNextJob();
+      if (!job) break;
+      await processJob(job.id, job.orderId);
+      if (shuttingDown) break;
+    }
+    const pending = await pendingJobCount();
+    console.log(`[worker] Pass complete. ${pending} job(s) still pending (backoff).`);
+    return;
+  }
 
   let lastCleanup = 0;
   while (!shuttingDown) {
