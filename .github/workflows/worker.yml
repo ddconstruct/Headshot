@@ -1,0 +1,52 @@
+# .github/workflows/worker.yml — headshot generation worker.
+#
+# Runs `npm run worker -- --once` (single pass, then exit) in two cases:
+#   1. workflow_dispatch — fired by the Vercel Stripe webhook seconds after a
+#      customer pays, so generation starts immediately with no always-on host.
+#   2. schedule — a backup sweep every 12h catches anything the dispatch
+#      missed and runs the 30-day retention cleanup.
+#
+# Required repo secrets (Settings → Secrets and variables → Actions):
+#   DATABASE_URL, REPLICATE_API_TOKEN, R2_ENDPOINT, R2_ACCESS_KEY_ID,
+#   R2_SECRET_ACCESS_KEY, R2_BUCKET, R2_PUBLIC_BASE_URL, RESEND_API_KEY
+#
+# Cost: GitHub Actions free tier = 2000 min/month on private repos. Idle
+# sweeps cost ~2 min each (4/day). A real order burns 30–90 min of Replicate
+# generation. Budget ≈ 25–30 orders/month free — plenty for launch.
+
+name: headshot-worker
+
+on:
+  workflow_dispatch:
+    inputs:
+      order_id:
+        description: "Order ID that was just paid (optional, for logging)"
+        required: false
+  schedule:
+    - cron: "0 */12 * * *" # backup sweep every 12h
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 360 # generation takes 30–90 min per order
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - run: npm ci
+
+      - name: Run worker (single pass)
+        run: npm run worker -- --once
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+          REPLICATE_API_TOKEN: ${{ secrets.REPLICATE_API_TOKEN }}
+          R2_ENDPOINT: ${{ secrets.R2_ENDPOINT }}
+          R2_ACCESS_KEY_ID: ${{ secrets.R2_ACCESS_KEY_ID }}
+          R2_SECRET_ACCESS_KEY: ${{ secrets.R2_SECRET_ACCESS_KEY }}
+          R2_BUCKET: ${{ secrets.R2_BUCKET }}
+          R2_PUBLIC_BASE_URL: ${{ secrets.R2_PUBLIC_BASE_URL }}
+          RESEND_API_KEY: ${{ secrets.RESEND_API_KEY }}
