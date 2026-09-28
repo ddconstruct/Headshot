@@ -13,7 +13,7 @@ CREATE TABLE IF NOT EXISTS orders (
   email            TEXT NOT NULL,
   pack             TEXT NOT NULL,              -- 'basic' | 'standard' | 'executive'
   status           TEXT NOT NULL,              -- awaiting_payment|paid|generating|complete|failed
-  selfie_paths     JSONB NOT NULL DEFAULT '[]',-- public URLs (R2) once configured; local paths in dev
+  selfie_paths     JSONB NOT NULL DEFAULT '[]',-- public URLs (R2) once configured (local paths in dev)
   stripe_session_id TEXT,
   result_urls      JSONB,                      -- public URLs of finished headshots
   failure_error    TEXT,                       -- set when status='failed'
