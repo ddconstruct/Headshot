@@ -6,6 +6,15 @@ const TAGLINE =
 export const metadata = {
   title: "Top Notch AI Headshots — Studio-quality headshots from your selfies",
   description: TAGLINE,
+  manifest: "/manifest.json",
+  themeColor: "#0a1120",
+  icons: {
+    icon: [
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icons/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
   openGraph: {
     title: "Top Notch AI Headshots — Studio-quality headshots from your selfies",
     description:
