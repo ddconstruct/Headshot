@@ -39,11 +39,13 @@ export default function LandingPage() {
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     setError("");
+
     const count = files?.length ?? 0;
     if (count < 10 || count > 15) {
       setError(`Please select 10–15 selfies (you chose ${count}).`);
       return;
     }
+
     setBusy(true);
     try {
       const form = new FormData();
@@ -51,16 +53,18 @@ export default function LandingPage() {
       form.append("email", email);
       form.append("pack", pack);
       for (const f of Array.from(files!)) form.append("selfies", f);
+
       const orderRes = await fetch("/api/order", { method: "POST", body: form });
       const orderData = await orderRes.json();
       if (!orderRes.ok) throw new Error(orderData.error ?? "Order creation failed.");
+
       const coRes = await fetch("/api/stripe/checkout", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ orderId: orderData.orderId }),
       });
       const coData = await coRes.json();
-      if (!coRes.ok) throw new Error(coData.error ?? "Checkout failed.");
+      if (!orderRes.ok) throw new Error(coData.error ?? "Checkout failed.");
       window.location.href = coData.url;
     } catch (err) {
       setError((err as Error).message);
@@ -81,17 +85,19 @@ export default function LandingPage() {
         details.faq p { color: ${MUTED}; margin: 10px 0 0; line-height: 1.6; }
       `}</style>
 
+      {/* NAV */}
       <nav style={{ position: "sticky", top: 0, zIndex: 10, background: "rgba(10,17,32,0.92)", backdropFilter: "blur(8px)", borderBottom: "1px solid #1e2c4a" }}>
         <div style={{ maxWidth: 1080, margin: "0 auto", padding: "14px 20px", display: "flex", alignItems: "center", justifyContent: "space-between" }}>
           <div style={{ fontWeight: 800, fontSize: 18 }}>
             <span style={{ color: GOLD }}>Top Notch</span> <span style={{ color: TEXT }}>AI Headshots</span>
           </div>
           <a href="#order" className="gold-btn" style={{ ...goldButton, padding: "10px 18px", fontSize: 15, textDecoration: "none" }}>
-            Get My Headshots
+            Buy Now
           </a>
         </div>
       </nav>
 
+      {/* HERO */}
       <header style={{ maxWidth: 1080, margin: "0 auto", padding: "72px 20px 56px", textAlign: "center" }}>
         <div style={{ display: "inline-block", background: "#1a2540", border: `1px solid ${GOLD}`, color: GOLD, borderRadius: 999, padding: "6px 16px", fontSize: 13, fontWeight: 700, letterSpacing: 1, marginBottom: 20 }}>
           ✨ AI-POWERED · NO STUDIO VISIT NEEDED
@@ -106,7 +112,7 @@ export default function LandingPage() {
         </p>
         <div style={{ display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
           <a href="#order" className="gold-btn" style={{ ...goldButton, textDecoration: "none" }}>
-            Get My Headshots — from $29
+            Buy Now — from $29
           </a>
           <a href="#pricing" style={{ ...ghostButton, textDecoration: "none" }}>
             See Pricing
@@ -119,6 +125,7 @@ export default function LandingPage() {
         </div>
       </header>
 
+      {/* HOW IT WORKS */}
       <section style={{ maxWidth: 1080, margin: "0 auto", padding: "24px 20px 56px" }}>
         <h2 style={sectionTitle}>How it works</h2>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
@@ -136,6 +143,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* PRICING */}
       <section id="pricing" style={{ maxWidth: 1080, margin: "0 auto", padding: "24px 20px 64px" }}>
         <h2 style={sectionTitle}>Simple pricing</h2>
         <p style={{ textAlign: "center", color: MUTED, marginTop: -8, marginBottom: 28 }}>One payment. No subscription. Yours to keep forever.</p>
@@ -162,6 +170,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* ORDER FORM */}
       <section style={{ background: SURFACE, borderTop: "1px solid #1e2c4a", borderBottom: "1px solid #1e2c4a" }}>
         <div ref={orderRef} id="order" style={{ maxWidth: 640, margin: "0 auto", padding: "56px 20px", scrollMarginTop: 70 }}>
           <h2 style={{ ...sectionTitle, marginBottom: 8 }}>Get your headshots</h2>
@@ -184,16 +193,20 @@ export default function LandingPage() {
                 </label>
               ))}
             </div>
+
             <input required placeholder="Your name" value={name}
               onChange={(e) => setName(e.target.value)} style={inputStyle} />
             <input required type="email" placeholder="Email for delivery" value={email}
               onChange={(e) => setEmail(e.target.value)} style={inputStyle} />
+
             <label style={{ ...inputStyle, cursor: "pointer", textAlign: "center" }}>
               {files?.length ? `${files.length} selfies selected ✓` : "Choose 10–15 selfies (JPG/PNG/WebP, ≤10 MB each)"}
               <input type="file" accept="image/jpeg,image/png,image/webp" multiple
                 onChange={(e) => setFiles(e.target.files)} style={{ display: "none" }} />
             </label>
+
             {error && <div style={{ color: "#f87171" }}>{error}</div>}
+
             <button type="submit" disabled={busy} className="gold-btn" style={{ ...goldButton, opacity: busy ? 0.7 : 1 }}>
               {busy ? "Working…" : "Continue to Payment →"}
             </button>
@@ -202,6 +215,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FAQ */}
       <section style={{ maxWidth: 720, margin: "0 auto", padding: "56px 20px" }}>
         <h2 style={sectionTitle}>Questions, answered</h2>
         <div style={{ display: "grid", gap: 12, marginTop: 24 }}>
@@ -228,6 +242,7 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/* FOOTER */}
       <footer style={{ borderTop: "1px solid #1e2c4a", padding: "28px 20px", textAlign: "center", color: MUTED, fontSize: 13 }}>
         <div style={{ fontWeight: 800, marginBottom: 8 }}>
           <span style={{ color: GOLD }}>Top Notch</span> <span style={{ color: TEXT }}>AI Headshots</span>
